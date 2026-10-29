@@ -42,14 +42,26 @@ def compute_decision_cutoff(
 
     Rule: Cutoff is (delivery_date - 1 day) at cutoff_time in Europe/London,
     converted to a timezone-aware UTC datetime.
+
+    DST handling:
+    - Ambiguous local times (fall-back transition, e.g. 01:30 during autumn change):
+      fold=0 explicitly selects the first occurrence (BST / UTC+1) per FORECAST_LOGIC §9.2.
+    - Nonexistent local times (spring-forward transition, e.g. 01:30 during spring gap):
+      zoneinfo with fold=0 maps to the pre-transition UTC offset (+00:00).
     """
     hour, minute = parse_cutoff_time(cutoff_time_str)
     prev_day = delivery_date - timedelta(days=1)
     tz = ZoneInfo(tz_name)
 
-    # Local datetime on D-1
+    # Local datetime on D-1 with explicit fold=0 for deterministic resolution
     local_dt = datetime(
-        prev_day.year, prev_day.month, prev_day.day, hour, minute, tzinfo=tz
+        prev_day.year,
+        prev_day.month,
+        prev_day.day,
+        hour,
+        minute,
+        fold=0,
+        tzinfo=tz,
     )
     # Convert to UTC instant
     return local_dt.astimezone(UTC)

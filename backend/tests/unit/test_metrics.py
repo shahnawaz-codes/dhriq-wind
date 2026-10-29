@@ -240,3 +240,69 @@ def test_daily_metrics_aggregation():
     assert d2.n_matched == 1
     assert d2.mae_mw == 30.0
     assert d2.bias_mw == -30.0
+
+
+def test_testing_doc_section_3_cases():
+    """Verify all explicit test cases from docs/TESTING.md §3."""
+    cutoff = datetime(2026, 1, 14, 9, 0, tzinfo=UTC)
+
+    def _make_records(pairs: list[tuple[float, float]]) -> list[ComparisonRecord]:
+        recs = []
+        for i, (act, fc) in enumerate(pairs):
+            err = act - fc  # actual - forecast convention (BR-10)
+            recs.append(
+                ComparisonRecord(
+                    start_time=datetime(2026, 1, 15, i, 0, tzinfo=UTC),
+                    delivery_date=date(2026, 1, 15),
+                    cutoff_time=cutoff,
+                    actual_mw=act,
+                    forecast_mw=fc,
+                    forecast_publish_time=cutoff,
+                    forecast_horizon_hours=15.0,
+                    error_mw=err,
+                    abs_error_mw=abs(err),
+                    status=RecordStatus.MATCHED,
+                )
+            )
+        return recs
+
+    # 1. Basic: (100,90), (50,60), (80,80) -> errors +10, -10, 0
+    # MAE = 6.667, RMSE = 8.165, bias = 0
+    recs_basic = _make_records([(100.0, 90.0), (50.0, 60.0), (80.0, 80.0)])
+    m_basic = compute_metrics(recs_basic)
+    assert math.isclose(m_basic.mae_mw, 20.0 / 3.0, rel_tol=1e-5)  # 6.6666...
+    assert math.isclose(
+        m_basic.rmse_mw, math.sqrt(200.0 / 3.0), rel_tol=1e-5
+    )  # 8.1649...
+    assert math.isclose(m_basic.bias_mw, 0.0, abs_tol=1e-9)
+
+    # 2. Positive bias: (100,80), (100,90) -> errors +20, +10 -> bias = +15, MAE = 15
+    recs_pos = _make_records([(100.0, 80.0), (100.0, 90.0)])
+    m_pos = compute_metrics(recs_pos)
+    assert m_pos.bias_mw == 15.0
+    assert m_pos.mae_mw == 15.0
+
+    # 3. Negative bias: (80,100) -> error -20 -> bias = -20
+    recs_neg = _make_records([(80.0, 100.0)])
+    m_neg = compute_metrics(recs_neg)
+    assert m_neg.bias_mw == -20.0
+    assert m_neg.mae_mw == 20.0
+
+    # 4. Single point: (10,7) -> error +3 -> MAE=3, RMSE=3, bias=3
+    recs_single = _make_records([(10.0, 7.0)])
+    m_single = compute_metrics(recs_single)
+    assert m_single.mae_mw == 3.0
+    assert m_single.rmse_mw == 3.0
+    assert m_single.bias_mw == 3.0
+
+    # 5. Sign convention (BR-10): forecast > actual -> error negative
+    recs_sign = _make_records([(50.0, 70.0)])
+    m_sign = compute_metrics(recs_sign)
+    assert m_sign.bias_mw == -20.0
+    assert recs_sign[0].error_mw == -20.0
+
+    # 6. Large values (30,000 MW range) -> no overflow, float precision OK
+    recs_large = _make_records([(28000.0, 29000.0), (31000.0, 30500.0)])
+    m_large = compute_metrics(recs_large)
+    assert m_large.bias_mw == -250.0  # (-1000 + 500) / 2
+    assert m_large.mae_mw == 750.0  # (1000 + 500) / 2
