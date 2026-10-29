@@ -6,6 +6,15 @@ Built for electricity procurement and trading teams to evaluate day-ahead foreca
 
 ---
 
+## Live Deployment
+
+- **Production Web Application:** [https://uk-wind-turbine.vercel.app](https://uk-wind-turbine.vercel.app)
+- **Production API Base:** [https://uk-wind-api-slfu.onrender.com](https://uk-wind-api-slfu.onrender.com)
+- **API Health Check:** [https://uk-wind-api-slfu.onrender.com/api/health](https://uk-wind-api-slfu.onrender.com/api/health)
+- **Interactive OpenAPI Docs:** [https://uk-wind-api-slfu.onrender.com/docs](https://uk-wind-api-slfu.onrender.com/docs)
+
+---
+
 ## Architecture & Technology Stack
 
 - **Frontend:** React 19, TypeScript, Vite, Recharts, TanStack Query, CSS Design Tokens.
@@ -153,3 +162,4 @@ bash scripts/smoke.sh http://127.0.0.1:8000
 - **Provisional Benchmark:** 09:00 Europe/London on $D-1$ is an illustrative day-ahead trading decision benchmark, not an official Elexon market gate-closure time.
 - **Hourly Evaluation Grid:** Accuracy is evaluated strictly at hourly top-of-hour points (`:00:00Z`). Elexon BMRS documentation does not state whether `WINDFOR` is an instantaneous spot reading or an hourly integrated average. Because FUELHH `:30` readings represent distinct half-hour physical settlement periods, interpolating or averaging actuals without documented basis was rejected to avoid introducing artificial distortion.
 - **Data Completeness:** 744 of 744 expected top-of-hour periods matched (100.0% coverage).
+

@@ -37,3 +37,4 @@ def test_cors_origins_empty_string(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("CORS_ALLOWED_ORIGINS", "   ")
     settings = Settings()
     assert settings.cors_allowed_origins == []
+
