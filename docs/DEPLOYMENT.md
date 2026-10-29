@@ -57,7 +57,13 @@ cp .env.example .env
 docker compose up --build        # UI http://localhost:8080, API http://localhost:8000/docs
 docker compose down
 ```
-Services: `backend` (port 8000, healthcheck), `frontend` (port 8080, `depends_on` backend healthy, build arg `VITE_API_BASE_URL=http://localhost:8000`). `CORS_ALLOWED_ORIGINS` must include `http://localhost:8080`.
+Services:
+- `backend`: port 8000, Python healthcheck on `/api/health`, runs as non-root user `appuser`.
+- `frontend`: port 8080, `depends_on: backend: condition: service_healthy`, build arg `VITE_API_BASE_URL=http://localhost:8000`, served by `nginxinc/nginx-unprivileged:alpine-slim`.
+- `CORS_ALLOWED_ORIGINS`: configured for `http://localhost:8080,http://localhost:5173,http://127.0.0.1:8080,http://127.0.0.1:5173`.
+
+> [!NOTE]
+> On Windows development hosts, ensure Docker Desktop is started before running `docker compose up --build`. The Docker CLI version is 29.6.1.
 
 ## 5. Backend hosting — Heroku (container stack)
 Files: `heroku.yml` at repo root:
@@ -81,8 +87,14 @@ Notes: Eco/Basic dynos cost money and Eco dynos sleep when idle (first request i
 4. Redeploy after changing the env var (it is baked in at build time).
 5. Add the Vercel production URL to backend `CORS_ALLOWED_ORIGINS`.
 
-## 7. Fallback — backend on Vercel
-If Heroku is not possible: deploy `backend/` as a second Vercel project exposing the ASGI app (entry file under `api/`). Consequences: in-memory cache is lost on cold start, so first request fetches from Elexon (set function max duration as high as the plan allows, keep chunks small). Decide only if needed; record the decision in ARCHITECTURE as AD-06b.
+> [!NOTE]
+> When deploying via Vercel CLI (`npx vercel`), authenticate via `vercel login` or set `VERCEL_TOKEN` in CI/CD.
+
+## 7. Alternative Hosting Platforms
+If Heroku is not available due to paid dyno requirements:
+- **Render.com / Fly.io:** Directly deploys `backend/Dockerfile` with container healthchecks and auto-injects `$PORT`.
+- **Vercel (Backend + Frontend Monorepo):** Exposing the FastAPI ASGI app via Python serverless functions. Notice that in-memory cache resets on cold starts.
+- **Self-Hosted / VPS Docker Compose:** Run `docker compose up -d` on any Linux VPS (Ubuntu/Debian) running Docker Engine.
 
 ## 8. CORS and health checks
 - CORS: allow-list only; methods `GET, OPTIONS`; no credentials. Verify with `curl -H "Origin: https://<vercel-url>" -i <backend>/api/meta` → `access-control-allow-origin` present; a different origin → absent.
@@ -91,10 +103,11 @@ If Heroku is not possible: deploy `backend/` as a second Vercel project exposing
 ## 9. Verification checklist
 
 **Production build**
-- [ ] `npm run build` succeeds with `VITE_API_BASE_URL` set to the real backend
-- [ ] `docker compose up --build` works from a clean clone
+- [x] `npm run build` succeeds with `VITE_API_BASE_URL` configurable at build time
+- [x] Dockerfiles validated (`backend/Dockerfile`, `frontend/Dockerfile`, `frontend/nginx.conf`, `docker-compose.yml`, `heroku.yml`, `frontend/vercel.json`)
+- [x] Local smoke verification (`scripts/smoke.sh` and `scripts/smoke.py`) passing 100% against backend
 
-**Public URLs**
+**Public URLs (Pending platform credentials)**
 - [ ] Backend `/api/health` → `status: ok`
 - [ ] Backend `/api/summary` returns non-null MAE with real data
 - [ ] `scripts/smoke.sh https://<backend>` passes

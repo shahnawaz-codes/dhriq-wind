@@ -39,3 +39,4 @@ def test_smoke_endpoints_suite(app_client):
     res_invalid = app_client.get("/api/summary?cutoff_time=99:99")
     assert res_invalid.status_code == 400
     assert res_invalid.json()["error"]["code"] == "INVALID_PARAMETER"
+
