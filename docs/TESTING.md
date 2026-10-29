@@ -61,6 +61,9 @@ Boundary behaviour (inclusive) is defined in FORECAST_LOGIC BR-03; if that rule 
 - Missing actual → status `missing_actual`, excluded from metrics, counted.
 - Missing forecast → `missing_forecast`. Both → `missing_both`.
 - **Hourly matching and :30 exclusion guard:** Grid is strictly hourly (`:00:00Z`, 744 periods in Jan 2026). FUELHH `:30` actual rows are never matched in the grid and **never enter metrics calculation** (MAE, RMSE, bias). Test explicitly asserts that passing FUELHH data with `:30` records does not change the metric results compared to passing only `:00` records.
+- **2-Day Lookback Coverage & Early Cutoff Boundary Tests:**
+  - Test that the 2-day lookback (`FORECAST_PUBLISH_LOOKBACK_DAYS=2`) yields **100% forecast coverage (744/744)** under cutoff times between `03:00` and `23:00` UTC (including default `09:00`).
+  - Test that for very early cutoffs (e.g. `00:00 UTC`), periods on Jan 1–2 lacking an eligible publication in the 2-day lookback window are cleanly flagged as `missing_forecast`, excluded from metrics, and counted in `data_quality.n_missing_forecast` without unhandled errors or data leakage.
 - Duplicate forecast identical → one kept, counter +1. Duplicate with different value → last kept, `conflicting_forecast_rows` +1, warning.
 - Duplicate actuals → latest `publish_time` wins; warning if values differ.
 - Invalid rows: null, `"abc"`, NaN, inf, negative generation, bad timestamp → dropped and counted.
@@ -71,6 +74,7 @@ Boundary behaviour (inclusive) is defined in FORECAST_LOGIC BR-03; if that rule 
 ## 7. API integration tests (`backend/tests/integration/`)
 FastAPI `TestClient` + `respx` mocks of Elexon.
 - Each endpoint: happy path shape matches API_SPEC (validate with Pydantic models).
+- Cutoff recalculation: changing `cutoff_time` (e.g. `09:00` vs `18:00`) returns different selected forecasts, different `n_matched` / `coverage_pct`, and recalculated metrics.
 - Validation: bad date, start > end, out of window, bad cutoff `25:00`, bad `sort_by`, `page_size=501` → 400 `INVALID_PARAMETER`.
 - Pagination: totals, last page, beyond last page empty.
 - Sorting: nulls last.
@@ -81,8 +85,8 @@ FastAPI `TestClient` + `respx` mocks of Elexon.
 - CORS header present for allowed origin, absent for others.
 
 ## 8. Frontend component tests (Vitest + RTL)
-- `KpiCard`: value+unit, `null` → "—", tooltip opens on focus.
-- `FilterBar`: end < start shows message and blocks apply; limits to window.
+- `KpiCard`: value+unit, `null` → "—", tooltip opens on focus. Matched periods card displays both count and percentage (e.g. `744 (100.0%)`).
+- `FilterBar`: end < start shows message and blocks apply; limits to window. Cutoff time input triggers re-fetch with `cutoff_time=HH:MM` and recalculates metrics and table.
 - `RecordsTable`: header click calls sort; `aria-sort`; empty/loading/error states; null cells "—"; status chips text.
 - `ActualForecastChart`: renders with data; shows empty state for no data (mock Recharts container size).
 - API client: error body mapped to a typed error; 503 triggers retry logic.

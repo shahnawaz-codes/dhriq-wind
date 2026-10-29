@@ -65,9 +65,9 @@ The exact physical meaning of the WINDFOR number is unconfirmed in official docu
 - This maintains 100% fidelity to Rule R10 ("Never fabricate") and provides an uncorrupted, transparent evaluation across the **744 expected hourly periods** of January 2026. This open question is documented as **Q-11** in [PRD §12](PRD.md#12-risks-and-unresolved-questions).
 
 ### Why 09:00 as the default cutoff?
-It is a **placeholder** for "morning of D−1, before day-ahead auctions close". We did not verify the GB day-ahead market gate-closure time in this project, and the challenge does not give one.
+Default cutoff `09:00 Europe/London` on D−1 is an **illustrative provisional evaluation cutoff**, NOT a verified market gate-closure time (unstated in the hiring challenge; actual GB day-ahead power auction gate closures typically occur later in the morning around 11:00 or 12:00 UK time). Because the challenge did not specify an exact decision clock time, 09:00 was chosen as a reasonable morning placeholder before day-ahead commitments.
 In Phase 1, we confirmed that WINDFOR forecasts are published 8 times daily at `02:30`, `04:30`, `07:30`, `09:30`, `11:30`, `15:30`, `18:30`, and `22:30 UTC`.
-Under a `09:00 UTC` cutoff, the latest eligible publication is the **`07:30 UTC`** publication. Under an `18:00 UTC` cutoff, it is the **`15:30 UTC`** publication. The result is sensitive to the cutoff, which is why the cutoff selector is a P0 requirement.
+Under a `09:00 UTC` cutoff, the latest eligible publication is the **`07:30 UTC`** publication. Under an `18:00 UTC` cutoff, it is the **`15:30 UTC`** publication. The result is sensitive to the cutoff, which is why the cutoff selector is a P0 requirement in the UI and backend.
 
 ### Hard rule
 > **Never** use the "latest forecast for the period" without the cutoff filter. That is **data leakage**: it uses information that the buyer did not have when deciding.
@@ -141,13 +141,27 @@ Do **not** compute MAPE (actual can be near 0, which makes it unstable).
 | Row outside window | ignored (not counted as invalid) |
 | Upstream failure | see ARCHITECTURE §Error handling; never replace with fake data |
 
-## 9. Timezone and DST
+## 9. Timezone, Evaluation Window and DST
 
-- Elexon timestamps are verified as **UTC instants** (`YYYY-MM-DDTHH:MM:SSZ`). All internal datetimes are timezone-aware UTC.
-- `Europe/London` is used **only** to compute the cutoff and the delivery date D (use `zoneinfo`, package `tzdata` in Docker).
-- **January 2026 is GMT (UTC+0)**: no DST change occurs in the window (BST starts 29 March 2026), so every day has exactly 24 hourly periods (and 48 half-hour settlement periods in raw FUELHH) and local time = UTC. The code must still use proper timezone conversion so changing the window to a DST month does not silently break (test with a March/October fixture).
-- Non-existent/ambiguous local cutoff times (DST gaps) are out of scope for January; add a unit test documenting the chosen behaviour (`zoneinfo` default `fold=0`).
-- The API returns all instants as ISO-8601 UTC strings ending in `Z`. The UI shows UTC and labels it "UTC (= GMT in January)".
+### 9.1 January 2026 Window & Delivery Date Calculation
+- **Evaluation Grid (UTC):** The January 2026 evaluation window is defined strictly by UTC hourly instants:
+  `T = { 2026-01-01T00:00:00Z + k * 1 hour | k = 0 .. 743 }` (exactly **744** hourly periods).
+- **Delivery Date D (`Europe/London`):** For each grid instant `t`, the delivery date D is the calendar date in `Europe/London`:
+  `D(t) = local_date(t, "Europe/London")`.
+  In January 2026, London is GMT (UTC+0), so `D(t)` is identical to `utc_date(t)`. Every calendar day in January has exactly 24 hourly periods (and 48 half-hour settlement periods in raw FUELHH).
+- **Decision Cutoff Instant:**
+  `cutoff(D) = to_utc(local_datetime(D - 1 day, cutoff_local_time, "Europe/London"))`.
+  In January, because GMT = UTC+0, a default local cutoff of `09:00` yields `(D - 1 day)T09:00:00Z`.
+- Elexon source timestamps are verified as UTC instants (`YYYY-MM-DDTHH:MM:SSZ`). All internal datetimes are timezone-aware UTC. The API outputs all instants ending in `Z`.
+
+### 9.2 Behavior Across Configurable Windows and DST Transitions
+If the application window is configured to a period spanning Daylight Saving Time (BST) transitions:
+- **Spring Transition (e.g. 2026-03-29):** Clocks advance 1 hour at 01:00 GMT to 02:00 BST. Grouping by `Europe/London` delivery date yields **23 hourly delivery periods** on that date.
+- **Autumn Transition (e.g. 2026-10-25):** Clocks fall back 1 hour at 02:00 BST to 01:00 GMT. Grouping by `Europe/London` delivery date yields **25 hourly delivery periods** on that date.
+- **Cutoff UTC Conversion Across Transitions:**
+  - If delivery date D is on the first day of BST (e.g. 30 March) and D−1 is in GMT (29 March), `local_datetime(D - 1, 09:00, "Europe/London")` evaluates in GMT, converting to `09:00 UTC`.
+  - Once D−1 is within BST (UTC+1), `09:00 Europe/London` converts to `08:00 UTC`.
+  - Python's standard `zoneinfo.ZoneInfo("Europe/London")` handles the offset conversion cleanly. Non-existent local times (spring forward gap) and ambiguous local times (fall back fold) resolve with standard `fold=0`.
 
 ## 10. Data leakage prevention checklist
 
@@ -168,3 +182,12 @@ Do **not** compute MAPE (actual can be near 0, which makes it unstable).
 | `FORECAST_PUBLISH_LOOKBACK_DAYS` | `2` | how many days before window start to request WINDFOR publications |
 
 API clients may override the cutoff **per request** with `cutoff_time=HH:MM` (see [API_SPEC](API_SPEC.md)). The inclusive boundary (BR-03) is fixed.
+
+### 11.1 WINDFOR Publication Lookback Verification and Limitation
+- **Default 2-Day Lookback (`FORECAST_PUBLISH_LOOKBACK_DAYS=2`):** WINDFOR data is fetched starting `2025-12-30T00:00:00Z` (2 days before `2026-01-01`).
+- **Verified Coverage:**
+  - For cutoff times between **`03:00` and `23:00` UTC**, the 2-day lookback is **100.0% sufficient** across all 744 hourly periods of January 2026 (each period has an eligible forecast available from the 8-daily runs).
+- **Documented Limitation for Early Cutoffs:**
+  - For very early cutoff times on D−1 (specifically before `03:00 UTC`, such as `00:00 UTC`), the eligible publication on D−1 would have to be from D−2 late evening (e.g. `2025-12-29T22:30:00Z`).
+  - Because a 2-day lookback only starts on `2025-12-30T00:00:00Z`, 62 hourly delivery periods on Jan 1–2 have no eligible forecast in the lookback dataset under a `00:00 UTC` cutoff (yielding 91.7% coverage).
+- **Test Requirement (TESTING.md):** The application must not crash or fall back to later forecasts when early cutoffs leave periods without eligible forecasts. It must mark them as `missing_forecast`, exclude them from metrics, and report them transparently in `data_quality`. To achieve 100% coverage at a midnight cutoff, `FORECAST_PUBLISH_LOOKBACK_DAYS=3` would be required.

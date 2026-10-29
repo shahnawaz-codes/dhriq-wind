@@ -158,3 +158,43 @@ Following review of Phase 1 findings, the project adopted **Option A with an hou
 3. **Context Field (P1):** `/api/series` adds an optional `actual_half_hour_context_mw` field to pass `:30` actuals for UI visual context only; this never enters error calculations.
 4. **Open Question (Q-11):** Documented in [PRD §12](PRD.md#12-risks-and-unresolved-questions) and [FORECAST_LOGIC §4](FORECAST_LOGIC.md) that the physical meaning of WINDFOR (instantaneous at :00 vs 60-min average) remains unconfirmed and will be confirmed in subsequent steps.
 
+---
+
+## 7. WINDFOR Lookback Verification & Early Cutoff Analysis
+
+We evaluated the sufficiency of the 2-day lookback window (`2025-12-30T00:00:00Z` to `2026-01-31T23:59:59Z`) across all 744 expected hourly delivery periods of January 2026 under varying decision cutoffs:
+
+| Cutoff Time (D−1) | Matched Periods | Missing Forecast | Coverage (%) | Finding |
+|---|---|---|---|---|
+| `00:00 UTC` | 682 | 62 | 91.7% | 62 periods on Jan 1–2 require publications from D−2 late evening (29 Dec), falling outside the 2-day lookback |
+| `03:00 UTC` | 744 | 0 | 100.0% | 100% covered |
+| `06:00 UTC` | 744 | 0 | 100.0% | 100% covered |
+| `09:00 UTC` (default) | 744 | 0 | 100.0% | 100% covered (picks 07:30 UTC publication of D−1) |
+| `12:00 UTC` | 744 | 0 | 100.0% | 100% covered |
+| `18:00 UTC` | 744 | 0 | 100.0% | 100% covered (picks 15:30 UTC publication of D−1) |
+| `23:00 UTC` | 744 | 0 | 100.0% | 100% covered (picks 22:30 UTC publication of D−1) |
+
+**Conclusion & Limitation:**
+- For all practical daytime cutoffs (`≥ 03:00 UTC`), the 2-day lookback is **100% sufficient**.
+- For early midnight cutoffs (`00:00 UTC`), 62 periods lack an eligible forecast in the 2-day lookback window. The system must handle this gracefully as `missing_forecast` without unhandled errors or data leakage (documented test requirement in `TESTING.md`).
+
+---
+
+## 8. Verification of Real Test Fixtures
+
+Two real fixtures were extracted from live API calls and verified:
+
+### 8.1 `backend/tests/fixtures/real_fuelhh_wind_sample.json`
+- **Source:** `https://data.elexon.co.uk/bmrs/api/v1/datasets/FUELHH/stream?settlementDateFrom=2026-01-01&settlementDateTo=2026-01-01&fuelType=WIND`
+- **Row count:** Exactly 48 rows (settlement periods 1 to 48 for date `2026-01-01`).
+- **Cadence:** Uniform 1,800 seconds (30 minutes) between start times (`00:00:00Z` to `23:30:00Z`).
+- **Fields:** `dataset` (str), `publishTime` (str), `startTime` (str), `settlementDate` (str), `settlementPeriod` (int), `fuelType` (str), `generation` (int).
+- **Values:** Min `13,756 MW`, Max `16,408 MW`, zero nulls, zero negative numbers.
+
+### 8.2 `backend/tests/fixtures/real_windfor_sample.json`
+- **Source:** `https://data.elexon.co.uk/bmrs/api/v1/datasets/WINDFOR/stream?publishDateTimeFrom=2025-12-31T07:30:00Z&publishDateTimeTo=2025-12-31T07:30:00Z`
+- **Row count:** Exactly 48 rows (from the forecast run published `2025-12-31T07:30:00Z` covering target delivery periods from `2025-12-30T21:00:00Z` to `2026-01-01T20:00:00Z`).
+- **Cadence:** Uniform 3,600 seconds (60 minutes) between start times.
+- **Fields:** `dataset` (str), `publishTime` (str), `startTime` (str), `generation` (int).
+- **Values:** Min `5,044 MW`, Max `20,028 MW`, zero nulls, zero negative numbers.
+

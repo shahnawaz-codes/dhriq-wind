@@ -39,15 +39,15 @@ P0 = must ship · P1 = important, ship if on schedule · P2 = optional.
 | FR-04 | P0 | Match selected forecast to actual by `startTime`; mark missing periods |
 | FR-05 | P0 | Compute MAE, RMSE, mean error (bias = actual − forecast) over matched periods |
 | FR-06 | P0 | Endpoints: `/api/health`, `/api/meta`, `/api/summary`, `/api/series`, `/api/records` per [API_SPEC](API_SPEC.md) |
-| FR-07 | P0 | Dashboard KPI cards with MAE, RMSE, bias, matched count, units and tooltips |
+| FR-07 | P0 | Dashboard KPI cards with MAE, RMSE, bias, matched periods (displayed as both count and percentage, e.g. `744 (100.0%)`), units and tooltips |
 | FR-08 | P0 | Actual-vs-forecast time-series chart with tooltip showing actual, forecast, error, and forecast `publishTime` |
 | FR-09 | P0 | Date range filter limited to the January 2026 window |
 | FR-10 | P0 | Records table with sort and pagination; columns: start time, actual, forecast, error, abs error, forecast publish time, status |
-| FR-11 | P0 | Visible assumptions banner: cutoff rule, timezone, "provisional" label |
+| FR-11 | P0 | Visible assumptions banner: explicitly stating that `09:00 Europe/London` on D−1 is a provisional evaluation cutoff (not a verified market gate-closure time), timezone, and "provisional" label |
 | FR-12 | P0 | Provenance/freshness: source, datasets, fetched-at, data-quality counts |
 | FR-13 | P0 | Loading, empty and error states for every data panel |
 | FR-14 | P0 | Dockerfiles + Docker Compose; public deployment (frontend + backend) |
-| FR-15 | P0 | Cutoff time selector in UI and backend (re-computes everything via `cutoff_time`) |
+| FR-15 | P0 | Cutoff time selector in UI and backend (re-computes forecast selection, matched count/percentage, and all error metrics via `cutoff_time`) |
 | FR-16 | P1 | Daily granularity toggle with daily MAE/bias |
 | FR-17 | P1 | Extra metrics: P90 absolute error, MAE % of mean actual, coverage % |
 | FR-18 | P1 | Forecast vintages panel (which `publishTime`s were used, how many periods each) |
@@ -104,7 +104,7 @@ P0 = must ship · P1 = important, ship if on schedule · P2 = optional.
 | ID | Question / risk | Impact | Provisional handling |
 |---|---|---|---|
 | Q-01 | "Decisions made in January" = decision date or delivery date? | Window shifts by one day | Delivery date in January; configurable |
-| Q-02 | Exact decision cutoff time? | Changes selected forecasts and all metrics | 09:00 Europe/London on D−1; configurable; P0 UI selector |
+| Q-02 | Exact decision cutoff time? | Changes selected forecasts and all metrics | `09:00 Europe/London` on D−1 is an illustrative provisional evaluation cutoff, NOT a verified market gate-closure time (unstated in task spec). Fully configurable in backend and changeable via P0 UI selector |
 | Q-03 | Is `publishTime == cutoff` eligible? | Edge cases only | Inclusive |
 | Q-04 | Exact FUELHH stream parameters and whether a `fuelType` server filter exists | Fetch code | **Verified in Phase 1:** `settlementDateFrom/To` + `fuelType=WIND` works server-side and produces exact identical rows to client-side filtering |
 | Q-05 | Is January 2026 data complete in both datasets? | Coverage, credibility | **Verified in Phase 1:** 100% complete; 0 missing settlement periods in FUELHH, 0 missing hours in WINDFOR |

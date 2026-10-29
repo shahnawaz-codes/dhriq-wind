@@ -70,9 +70,9 @@ Verify all text/background pairs ≥ 4.5:1 (3:1 for large text and chart lines) 
 
 | Component | Notes |
 |---|---|
-| `AppHeader`, `AssumptionsBanner` | Banner text from `/api/meta` `assumptions`; labelled "Provisional" with a link to Method |
-| `FilterBar` | Native `<input type="date">` with `min/max` = window; inline validation message; P0 cutoff `<input type="time">` with "Apply"; granularity segmented control (P1) |
-| `KpiCard` | Label, value + unit, one-line meaning, info tooltip (focusable button). `null` shows "—" with "No matched periods" |
+| `AppHeader`, `AssumptionsBanner` | Banner text from `/api/meta` `assumptions`; explicitly states that default `09:00 Europe/London` on D−1 is a **provisional evaluation cutoff**, NOT a verified market gate-closure time; labelled "Provisional" with a link to Method popover |
+| `FilterBar` | Native `<input type="date">` with `min/max` = window; inline validation message; P0 cutoff `<input type="time">` with "Apply" button (re-fetches `/api/summary`, `/api/series`, and `/api/records`, re-evaluating forecast selection and all metrics); granularity segmented control (P1) |
+| `KpiCard` | Label, value + unit, one-line meaning, info tooltip (focusable button). **Matched card displays both count and percentage** (e.g. `744 (100.0%)`); `null` shows "—" with "No matched periods" |
 | `ActualForecastChart` | Recharts line chart, two series, `connectNulls={false}`, Y axis "MW", X axis UTC time, legend, custom tooltip |
 | `RecordsTable` | Semantic `<table>`, sortable headers (buttons with `aria-sort`), pager, status chips with text |
 | `StatusChip` | `matched`, `missing forecast`, `missing actual`, `missing both` (text + icon, not colour only) |
@@ -97,7 +97,7 @@ Verify all text/background pairs ≥ 4.5:1 (3:1 for large text and chart lines) 
 - Null cells display "—".
 
 ## 10. Date and period selection
-Start/end date inputs limited to the window; invalid ranges (end < start) disable Apply and show message. Quick presets (P1): "Whole January", "Week 1–4". Cutoff time (P0) default from `/api/meta`; changing it shows a "Recalculating…" state; a "Reset to default" action appears when changed.
+Start/end date inputs limited to the window; invalid ranges (end < start) disable Apply and show message. Quick presets (P1): "Whole January", "Week 1–4". Cutoff time (P0) default (09:00) from `/api/meta`; changing it shows a "Recalculating…" state and re-fetches `/api/summary`, `/api/series`, and `/api/records` with `cutoff_time`, re-evaluating forecast selection, matched count/percentage, and all error metrics; a "Reset to default" action appears when changed.
 
 ## 11. States
 
@@ -130,8 +130,8 @@ Start/end date inputs limited to the window; invalid ranges (end < start) disabl
 | RMSE | "Root Mean Squared Error, in MW. Like MAE but penalises large misses more." |
 | Bias | "Mean of (actual − forecast), in MW. Positive: forecasts were too low on average. Negative: too high." |
 | P90 (P1) | "90% of evaluated hourly periods had an error at or below this size." |
-| Matched | "Hourly periods that have both an actual and an eligible forecast." |
-| Cutoff | "Only forecasts published at or before this time on the day before delivery are used. This is a provisional assumption." |
+| Matched | "Count and percentage of evaluated hourly periods that have both an actual and an eligible forecast selected under the active cutoff." |
+| Cutoff | "Only forecasts published at or before this time on the day before delivery are eligible. 09:00 Europe/London is an illustrative provisional evaluation cutoff, NOT a verified market gate-closure time. Use the selector to test other decision times." |
 
 ## 15. Data freshness and provenance indicators
 Always visible in footer and in an info popover: source (Elexon Insights API), datasets (FUELHH wind, WINDFOR), "Fetched at <UTC>", "Cache age <n> min", stale flag, and the data window. Chart subtitle shows the active cutoff rule.
