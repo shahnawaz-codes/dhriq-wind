@@ -1,0 +1,93 @@
+:root {
+  /* Typography */
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --text-xs: 0.75rem;     /* 12px */
+  --text-sm: 0.875rem;    /* 14px */
+  --text-md: 1rem;        /* 16px */
+  --text-lg: 1.25rem;     /* 20px */
+  --text-xl: 1.75rem;     /* 28px */
+  --text-2xl: 2.25rem;    /* 36px */
+
+  --lh-tight: 1.25;
+  --lh-normal: 1.5;
+
+  /* Spacing Scale (4-point base) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-full: 9999px;
+
+  /* Colors */
+  --bg: #F6F8FA;
+  --surface: #FFFFFF;
+  --surface-hover: #F8FAFC;
+  --surface-subtle: #F1F3F5;
+  --border: #D0D7DE;
+  --border-light: #E1E4E8;
+
+  --text: #1F2933;
+  --text-muted: #52606D;
+  --text-light: #7B8794;
+
+  /* Series Colors */
+  --actual: #1B5E9E;       /* Actual generation (blue solid) */
+  --forecast: #C2570C;     /* Forecast generation (amber dashed) */
+
+  /* Semantic Alerts */
+  --error-pos: #0F766E;    /* Actual > Forecast (Under-forecast) */
+  --error-neg: #B42318;    /* Actual < Forecast (Over-forecast) */
+
+  --warning-bg: #FFF4E5;
+  --warning-text: #7A4100;
+  --warning-border: #FFD399;
+
+  --danger-bg: #FEECEB;
+  --danger-text: #8A1C14;
+  --danger-border: #FECDCA;
+
+  --success-bg: #ECFDF3;
+  --success-text: #027A48;
+  --success-border: #A6F4C5;
+
+  --focus: #0B5FFF;
+  --focus-ring: 0 0 0 2px var(--focus);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-family);
+  font-size: var(--text-md);
+  line-height: var(--lh-normal);
+  color: var(--text);
+  background-color: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tabular figures for numbers */
+.num, .tabular, table td, .kpi-value {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Accessibility focus styles */
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
