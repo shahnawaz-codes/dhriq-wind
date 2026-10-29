@@ -65,7 +65,7 @@ class Settings(BaseSettings):
     )
 
     # Server & Security
-    cors_allowed_origins: list[str] = Field(
+    cors_allowed_origins: list[str] | str = Field(
         default=[
             "http://localhost:5173",
             "http://localhost:8080",
@@ -77,14 +77,25 @@ class Settings(BaseSettings):
     )
     app_version: str = "1.0.0"
 
-    @field_validator("cors_allowed_origins", mode="before")
+    @field_validator("cors_allowed_origins", mode="after")
     @classmethod
     def parse_cors_origins(cls, v: Any) -> list[str]:
         if isinstance(v, str):
+            v = v.strip()
+            if not v:
+                return []
+            if v.startswith("[") and v.endswith("]"):
+                try:
+                    import json
+                    parsed = json.loads(v)
+                    if isinstance(parsed, list):
+                        return [str(x).strip() for x in parsed if str(x).strip()]
+                except Exception:
+                    pass
             return [x.strip() for x in v.split(",") if x.strip()]
-        if isinstance(v, list):
+        if isinstance(v, (list, tuple, set)):
             return [str(x).strip() for x in v if str(x).strip()]
-        return v
+        return [str(v)]
 
 
 @lru_cache
