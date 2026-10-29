@@ -352,6 +352,34 @@ def test_generic_server_error_mapped_to_500(app_client):
         store.get_data = original_get_data
 
 
+def test_stale_cache_observable_to_consumers(app_client):
+    # Requirement 4: Stale cache fallback must be observable in API responses
+    # and cannot be mistaken for fresh data.
+    store = ds_module._data_store_instance
+    original_cached = store._cached
+
+    # Mark cached data as stale
+    stale_data = original_cached._replace(is_stale=True)
+    store._cached = stale_data
+    store.get_data = AsyncMock(return_value=stale_data)
+
+    try:
+        # 1. /api/meta shows stale=True
+        res_meta = app_client.get("/api/meta")
+        assert res_meta.status_code == 200
+        assert res_meta.json()["provenance"]["stale"] is True
+
+        # 2. /api/summary shows stale=True and warning in data_quality.warnings
+        res_summary = app_client.get("/api/summary")
+        assert res_summary.status_code == 200
+        body = res_summary.json()
+        assert body["provenance"]["stale"] is True
+        assert any("stale" in w.lower() for w in body["data_quality"]["warnings"])
+    finally:
+        store._cached = original_cached
+        store.get_data = AsyncMock(return_value=original_cached)
+
+
 def test_404_not_found(app_client):
     res = app_client.get("/api/nonexistent_route")
     assert res.status_code == 404
