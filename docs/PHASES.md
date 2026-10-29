@@ -104,6 +104,6 @@ Optional work (P1/P2) may only use contingency hours. If a phase overruns by > 2
 | 3 | 2.5 | 2.0 | FastAPI backend, caching, error handling & integration tests |
 | 4 | 3.5 | 2.5 | React + Vite + TS dashboard, charts, table & RTL tests |
 | 5 | 1.0 | 0.5 | Accuracy analysis, sensitivity table, ANALYSIS_NOTES.md |
-| 6 | 1.5 | | |
+| 6 | 1.5 | 1.0 | Testing & validation, conftest, smoke.sh, smoke.py, 100% domain cov |
 | 7 | 1.5 | | |
 | 8 | 1.5 | | |

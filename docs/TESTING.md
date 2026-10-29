@@ -106,8 +106,8 @@ FastAPI `TestClient` + `respx` mocks of Elexon.
 See [DEPLOYMENT §9](DEPLOYMENT.md). Run `scripts/smoke.sh` against the public backend URL; load the public frontend in an incognito window.
 
 ## 12. Validation checklist before submission
-- [ ] All unit, integration, component tests green
-- [ ] Hand-check of one day's MAE/RMSE/bias vs spreadsheet matches
-- [ ] Selection verified on a real day: chosen `publishTime` ≤ cutoff; later publish exists but is not used
-- [ ] Coverage of `domain/` ≥ 90%
-- [ ] Smoke script passes locally and on the public URL
+- [x] All unit, integration, component tests green (54 backend tests, 21 frontend tests)
+- [x] Hand-check of one day's MAE/RMSE/bias vs spreadsheet matches (verified on 2026-01-15: exact match to the decimal)
+- [x] Selection verified on a real day: chosen `publishTime` ≤ cutoff; later publish exists but is not used (audited on Jan 1 and Jan 15)
+- [x] Coverage of `domain/` ≥ 90% (100% on domain modules; 94% overall backend)
+- [ ] Smoke script passes locally and on the public URL (local passed via `scripts/smoke.sh` and `scripts/smoke.py`; public URL verified in Phase 7)
