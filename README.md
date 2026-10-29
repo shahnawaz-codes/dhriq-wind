@@ -112,13 +112,58 @@ npm run dev
 
 ---
 
-## Local Development (With Docker Compose)
+## Environment Variables
 
-```bash
-docker compose up --build
+### Backend Configuration (`backend/`, see `.env.example`)
+
+| Variable | Default | Description |
+|---|---|---|
+| `PORT` | `8000` | Local port or dynamic port assigned by cloud host (`${PORT}`) |
+| `ELEXON_BASE_URL` | `https://data.elexon.co.uk/bmrs/api/v1` | Public Elexon Insights BMRS API base URL |
+| `ELEXON_TIMEOUT_SECONDS` | `30.0` | Per-request timeout for upstream Elexon queries |
+| `ELEXON_MAX_RETRIES` | `3` | Maximum automatic retries with exponential backoff |
+| `ELEXON_CHUNK_DAYS` | `7` | Maximum query window duration per upstream chunk |
+| `DELIVERY_WINDOW_START` | `2026-01-01` | Start of evaluation delivery window (inclusive) |
+| `DELIVERY_WINDOW_END` | `2026-01-31` | End of evaluation delivery window (inclusive) |
+| `DECISION_CUTOFF_LOCAL_TIME` | `09:00` | Default day-ahead trading decision cutoff time |
+| `DECISION_TIMEZONE` | `Europe/London` | Legal timezone for decision cutoff (DST-safe) |
+| `FORECAST_PUBLISH_LOOKBACK_DAYS`| `2` | Lookback window for latest eligible forecast vintages |
+| `CACHE_TTL_SECONDS` | `86400` | In-memory cache TTL (24 hours) |
+| `PRELOAD_ON_STARTUP` | `true` | Asynchronously preloads Elexon data on service boot |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:5173,http://localhost:8080` | Comma-separated or wildcard `*` allowed origins |
+
+### Frontend Configuration (`frontend/`)
+
+| Variable | Default | Description |
+|---|---|---|
+| `VITE_API_BASE_URL` | `http://localhost:8000` (empty string in dev) | Backend origin URL baked in at build time; stripped of trailing slashes |
+
+---
+
+## API Documentation
+
+All endpoints return JSON and provide standardized HTTP error codes.
+
+### Key Endpoints
+
+| Endpoint | Method | Parameters | Description |
+|---|---|---|---|
+| `/api/health` | `GET` | None | Service health status, version, and `data_loaded` flag |
+| `/api/meta` | `GET` | None | Delivery window boundaries, expected periods (744), timezones |
+| `/api/summary` | `GET` | `cutoff_time` (e.g. `09:00`), `start_date`, `end_date` | Overall KPIs (MAE, RMSE, bias, P90, coverage, vintage counts) |
+| `/api/series` | `GET` | `granularity` (`hourly`/`daily`), `cutoff_time`, dates | Time-series data points for charting with gaps on missing data |
+| `/api/records` | `GET` | `cutoff_time`, `page`, `page_size`, `status`, `sort_by` | Server-paginated, sortable, filterable settlement records |
+
+### Standardized Error Format
+```json
+{
+  "error": {
+    "code": "INVALID_PARAMETER",
+    "message": "Invalid cutoff_time format: 99:99. Expected HH:MM.",
+    "details": [{"field": "cutoff_time", "issue": "format"}]
+  }
+}
 ```
-- Frontend: `http://localhost:8080`
-- Backend API Docs: `http://localhost:8000/docs`
 
 ---
 
@@ -129,7 +174,7 @@ docker compose up --build
 cd backend
 .\.venv\Scripts\pytest -q --cov=app --cov-report=term-missing
 ```
-*Result: 54 passed, 100% domain coverage, 94% overall backend coverage.*
+*Result: 59 passed, 100% pure domain coverage, 94% overall backend coverage.*
 
 ### Run Frontend Tests, Linting & Build
 ```powershell
@@ -142,8 +187,8 @@ npm test          # Vitest: 21 component & client tests passed
 ### Run End-to-End Smoke Tests
 ```powershell
 backend\.venv\Scripts\python scripts\smoke.py http://127.0.0.1:8000
-# or via bash:
-bash scripts/smoke.sh http://127.0.0.1:8000
+# or against live production:
+backend\.venv\Scripts\python scripts\smoke.py https://uk-wind-api-slfu.onrender.com
 ```
 
 ---
@@ -162,4 +207,13 @@ bash scripts/smoke.sh http://127.0.0.1:8000
 - **Provisional Benchmark:** 09:00 Europe/London on $D-1$ is an illustrative day-ahead trading decision benchmark, not an official Elexon market gate-closure time.
 - **Hourly Evaluation Grid:** Accuracy is evaluated strictly at hourly top-of-hour points (`:00:00Z`). Elexon BMRS documentation does not state whether `WINDFOR` is an instantaneous spot reading or an hourly integrated average. Because FUELHH `:30` readings represent distinct half-hour physical settlement periods, interpolating or averaging actuals without documented basis was rejected to avoid introducing artificial distortion.
 - **Data Completeness:** 744 of 744 expected top-of-hour periods matched (100.0% coverage).
+
+---
+
+## AI Tool Disclosure
+
+In accordance with challenge requirements:
+- **Tool Used:** Google Antigravity (agentic pairing environment powered by Gemini models).
+- **Scope of Use:** AI assistance was utilized across the development phases for architecture and documentation scaffolding, drafting boilerplate API routes and React components, generating synthetic test fixtures, and optimizing build pipelines.
+- **Verification & Ownership:** Every architectural specification, mathematical definition (error sign convention `actual - forecast`, absolute error P90, timezone DST fold handling), test case, and reproducible metric analysis was verified and tested directly against official Elexon BMRS data streams.
 
