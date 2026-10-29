@@ -3,7 +3,6 @@ import {
   QueryClient,
   QueryClientProvider,
   useQuery,
-  keepPreviousData,
 } from '@tanstack/react-query';
 import {
   fetchMeta,
@@ -106,7 +105,19 @@ export const Dashboard: React.FC = () => {
         page,
         page_size: pageSize,
       }),
-    placeholderData: keepPreviousData,
+    placeholderData: (previousData, previousQuery) => {
+      // Keep previous data for smooth pagination/sorting, but clear on cutoff or date range changes
+      const prevKey = previousQuery?.queryKey;
+      if (
+        prevKey &&
+        prevKey[1] === startDate &&
+        prevKey[2] === endDate &&
+        prevKey[3] === cutoffTime
+      ) {
+        return previousData;
+      }
+      return undefined;
+    },
   });
 
   // Filter change handler for top bar
@@ -218,7 +229,7 @@ export const Dashboard: React.FC = () => {
             <KpiGrid
               metrics={summaryQuery.data?.metrics ?? null}
               dataQuality={summaryQuery.data?.data_quality ?? null}
-              isLoading={summaryQuery.isLoading}
+              isLoading={summaryQuery.isFetching}
             />
 
             {/* Time Series Chart */}
@@ -226,7 +237,7 @@ export const Dashboard: React.FC = () => {
               granularity={granularity}
               points={seriesQuery.data?.points ?? []}
               cutoffTime={cutoffTime}
-              isLoading={seriesQuery.isLoading}
+              isLoading={seriesQuery.isFetching}
             />
 
             {/* Detailed Evaluation Records Table */}
@@ -238,7 +249,7 @@ export const Dashboard: React.FC = () => {
               sortDir={sortDir}
               page={page}
               pageSize={pageSize}
-              isLoading={recordsQuery.isLoading}
+              isLoading={recordsQuery.isFetching}
               onFilterChange={handleTableFilterChange}
             />
 
@@ -246,7 +257,7 @@ export const Dashboard: React.FC = () => {
             <DataQualityCard
               dataQuality={summaryQuery.data?.data_quality ?? null}
               forecastVintages={summaryQuery.data?.forecast_vintages ?? []}
-              isLoading={summaryQuery.isLoading}
+              isLoading={summaryQuery.isFetching}
             />
           </>
         )}

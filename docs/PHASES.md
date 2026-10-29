@@ -98,12 +98,12 @@ Optional work (P1/P2) may only use contingency hours. If a phase overruns by > 2
 
 | Phase | Planned | Actual | Notes |
 |---|---|---|---|
-| 0 | 0.5 | | |
-| 1 | 1.0 | | |
-| 2 | 1.5 | | |
-| 3 | 2.5 | | |
-| 4 | 3.5 | | |
-| 5 | 1.0 | | |
+| 0 | 0.5 | 0.5 | Project rules, architecture, and docs review |
+| 1 | 1.0 | 1.0 | Elexon BMRS API investigation & real samples |
+| 2 | 1.5 | 1.5 | Pure domain logic, matching, metrics & 100% tests |
+| 3 | 2.5 | 2.0 | FastAPI backend, caching, error handling & integration tests |
+| 4 | 3.5 | 2.5 | React + Vite + TS dashboard, charts, table & RTL tests |
+| 5 | 1.0 | 0.5 | Accuracy analysis, sensitivity table, ANALYSIS_NOTES.md |
 | 6 | 1.5 | | |
 | 7 | 1.5 | | |
 | 8 | 1.5 | | |
