@@ -1,0 +1,65 @@
+{
+  "description": "# SYNTHETIC fixture for hand-calculation verification of forecast metrics",
+  "periods": [
+    {
+      "start_time": "2026-01-15T10:00:00Z",
+      "actual_mw": 100.0,
+      "forecast_mw": 80.0,
+      "expected_status": "matched",
+      "expected_error_mw": 20.0,
+      "expected_abs_error_mw": 20.0
+    },
+    {
+      "start_time": "2026-01-15T11:00:00Z",
+      "actual_mw": 200.0,
+      "forecast_mw": 250.0,
+      "expected_status": "matched",
+      "expected_error_mw": -50.0,
+      "expected_abs_error_mw": 50.0
+    },
+    {
+      "start_time": "2026-01-15T12:00:00Z",
+      "actual_mw": 150.0,
+      "forecast_mw": 150.0,
+      "expected_status": "matched",
+      "expected_error_mw": 0.0,
+      "expected_abs_error_mw": 0.0
+    },
+    {
+      "start_time": "2026-01-15T13:00:00Z",
+      "actual_mw": 300.0,
+      "forecast_mw": 260.0,
+      "expected_status": "matched",
+      "expected_error_mw": 40.0,
+      "expected_abs_error_mw": 40.0
+    },
+    {
+      "start_time": "2026-01-15T14:00:00Z",
+      "actual_mw": 120.0,
+      "forecast_mw": null,
+      "expected_status": "missing_forecast",
+      "expected_error_mw": null,
+      "expected_abs_error_mw": null
+    },
+    {
+      "start_time": "2026-01-15T15:00:00Z",
+      "actual_mw": null,
+      "forecast_mw": 180.0,
+      "expected_status": "missing_actual",
+      "expected_error_mw": null,
+      "expected_abs_error_mw": null
+    }
+  ],
+  "expected_metrics": {
+    "n_expected": 6,
+    "n_matched": 4,
+    "coverage_pct": 66.66666666666667,
+    "mean_actual_mw": 187.5,
+    "mean_forecast_mw": 185.0,
+    "bias_mw": 2.5,
+    "mae_mw": 27.5,
+    "rmse_mw": 33.54101966249684,
+    "mae_pct": 14.666666666666668,
+    "p90_abs_error_mw": 47.0
+  }
+}
